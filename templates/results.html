@@ -152,6 +152,50 @@
                 {% endif %}
             {% endif %}
         </section>
+
+        <!-- TikTok Section -->
+        <section class="source-section">
+            <h2 class="source-header tiktok">🎵 TikTok</h2>
+            {% if tiktok.error %}
+                <div class="error">{{ tiktok.error }}</div>
+            {% elif tiktok.results %}
+                {% for item in tiktok.results %}
+                <div class="listing">
+                    <div class="listing-info">
+                        <span class="title">{{ item.title[:80] }}{% if item.title|length > 80 %}...{% endif %}</span>
+                        {% if item.author %}<span class="seller">@{{ item.author }}{% if item.likes %} ❤️{{ item.likes }}{% endif %}</span>{% endif %}
+                    </div>
+                    <div class="listing-price">
+                        {% if item.price %}<strong>{{ item.price }}</strong>{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty">No TikTok posts with prices found.</div>
+            {% endif %}
+        </section>
+
+        <!-- Instagram Section -->
+        <section class="source-section">
+            <h2 class="source-header instagram">📸 Instagram</h2>
+            {% if instagram.error %}
+                <div class="error">{{ instagram.error }}</div>
+            {% elif instagram.results %}
+                {% for item in instagram.results %}
+                <div class="listing">
+                    <div class="listing-info">
+                        <span class="title">{{ item.title[:80] }}{% if item.title|length > 80 %}...{% endif %}</span>
+                        {% if item.author %}<span class="seller">@{{ item.author }}{% if item.likes %} ❤️{{ item.likes }}{% endif %}</span>{% endif %}
+                    </div>
+                    <div class="listing-price">
+                        {% if item.price %}<strong>{{ item.price }}</strong>{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty">No Instagram posts with prices found.</div>
+            {% endif %}
+        </section>
     </div>
 </body>
 </html>

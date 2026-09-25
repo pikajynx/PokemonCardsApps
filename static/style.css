@@ -158,6 +158,8 @@ header h1 {
 .source-header.ebay { background: #2a1a1a; color: #e53238; }
 .source-header.whatnot { background: #1a2a1a; color: #2ecc71; }
 .source-header.fanatics { background: #2a1a2a; color: #a855f7; }
+.source-header.tiktok { background: #1a1a2a; color: #ff0050; }
+.source-header.instagram { background: #2a1a1a; color: #e1306c; }
 
 .fanatics-subsection {
     border-bottom: 1px solid #2a2a3e;

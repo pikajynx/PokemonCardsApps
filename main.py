@@ -13,6 +13,8 @@ from services.tcgplayer import get_tcgplayer_prices
 from services.ebay import get_ebay_sold
 from services.whatnot import get_whatnot_listings
 from services.fanatics import get_fanatics_listings
+from services.tiktok import get_tiktok_listings
+from services.instagram import get_instagram_listings
 
 app = FastAPI(title="Pokémon Card Price Checker")
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -37,15 +39,19 @@ async def search(
     ebay_query = f"{query} {grade}".strip() if grade else query
     whatnot_query = f"{query} {grade}".strip() if grade else query
     fanatics_query = f"{query} {grade}".strip() if grade else query
+    social_query = f"{query} {grade}".strip() if grade else query
 
     # Run API calls concurrently
     tcg_task = asyncio.create_task(get_tcgplayer_prices(query))
     ebay_task = asyncio.create_task(get_ebay_sold(ebay_query))
     whatnot_task = asyncio.create_task(get_whatnot_listings(whatnot_query))
     fanatics_task = asyncio.create_task(get_fanatics_listings(fanatics_query))
+    tiktok_task = asyncio.create_task(get_tiktok_listings(social_query))
+    instagram_task = asyncio.create_task(get_instagram_listings(social_query))
 
-    tcg, ebay, whatnot, fanatics = await asyncio.gather(
-        tcg_task, ebay_task, whatnot_task, fanatics_task, return_exceptions=True
+    tcg, ebay, whatnot, fanatics, tiktok, instagram = await asyncio.gather(
+        tcg_task, ebay_task, whatnot_task, fanatics_task, tiktok_task, instagram_task,
+        return_exceptions=True
     )
 
     if isinstance(tcg, Exception):
@@ -56,6 +62,10 @@ async def search(
         whatnot = {"error": str(whatnot), "results": []}
     if isinstance(fanatics, Exception):
         fanatics = {"sold": [], "auctions": [], "buy_now": []}
+    if isinstance(tiktok, Exception):
+        tiktok = {"error": str(tiktok), "results": []}
+    if isinstance(instagram, Exception):
+        instagram = {"error": str(instagram), "results": []}
 
     return templates.TemplateResponse("results.html", {
         "request": request,
@@ -65,6 +75,8 @@ async def search(
         "ebay": ebay,
         "whatnot": whatnot,
         "fanatics": fanatics,
+        "tiktok": tiktok,
+        "instagram": instagram,
     })
 
 
