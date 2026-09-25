@@ -17,6 +17,7 @@ async def get_ebay_sold(query: str) -> dict:
         "count": 30,
         "ebaySite": "ebay.com",
         "itemCondition": "any",
+        "sold": "true",
     }
 
     async with httpx.AsyncClient(timeout=15) as client:
@@ -29,7 +30,11 @@ async def get_ebay_sold(query: str) -> dict:
             resp.raise_for_status()
             data = resp.json()
 
-            listings = data.get("listings", data.get("results", []))
+            # Debug: log the response keys
+            print(f"CompSniper response keys: {list(data.keys())}")
+            print(f"CompSniper response (first 500 chars): {str(data)[:500]}")
+
+            listings = data.get("listings", data.get("results", data.get("items", data.get("sold", []))))
             summary = data.get("summary", {})
 
             # Show all returned listings (CompSniper already returns recent ones)
