@@ -12,7 +12,7 @@ from fastapi.templating import Jinja2Templates
 from services.tcgplayer import get_tcgplayer_prices
 from services.ebay import get_ebay_sold
 from services.whatnot import get_whatnot_listings
-# from services.fanatics import get_fanatics_listings
+from services.fanatics import get_fanatics_listings
 
 app = FastAPI(title="Pokémon Card Price Checker")
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -33,17 +33,19 @@ async def search(
     query = q.strip()
     grade = grade.strip()
 
-    # Build graded search query for eBay and Whatnot
+    # Build graded search query
     ebay_query = f"{query} {grade}".strip() if grade else query
     whatnot_query = f"{query} {grade}".strip() if grade else query
+    fanatics_query = f"{query} {grade}".strip() if grade else query
 
     # Run API calls concurrently
     tcg_task = asyncio.create_task(get_tcgplayer_prices(query))
     ebay_task = asyncio.create_task(get_ebay_sold(ebay_query))
     whatnot_task = asyncio.create_task(get_whatnot_listings(whatnot_query))
+    fanatics_task = asyncio.create_task(get_fanatics_listings(fanatics_query))
 
-    tcg, ebay, whatnot = await asyncio.gather(
-        tcg_task, ebay_task, whatnot_task, return_exceptions=True
+    tcg, ebay, whatnot, fanatics = await asyncio.gather(
+        tcg_task, ebay_task, whatnot_task, fanatics_task, return_exceptions=True
     )
 
     if isinstance(tcg, Exception):
@@ -52,8 +54,8 @@ async def search(
         ebay = {"error": str(ebay), "results": []}
     if isinstance(whatnot, Exception):
         whatnot = {"error": str(whatnot), "results": []}
-
-    fanatics = {"sold": [], "auctions": [], "buy_now": []}
+    if isinstance(fanatics, Exception):
+        fanatics = {"sold": [], "auctions": [], "buy_now": []}
 
     return templates.TemplateResponse("results.html", {
         "request": request,
