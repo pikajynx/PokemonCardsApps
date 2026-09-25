@@ -3,7 +3,7 @@ import os
 import httpx
 
 API_KEY = os.getenv("APIFY_API_KEY", "")
-ACTOR_ID = "crawloop~fanatics-collect-scraper"
+ACTOR_ID = "crawloop/fanatics-collect-scraper"
 
 
 async def get_fanatics_listings(query: str) -> dict:
