@@ -1,7 +1,6 @@
 """eBay sold listings via CompSniper API"""
 import os
 import httpx
-from datetime import datetime, timedelta, timezone
 
 API_KEY = os.getenv("COMPSNIPER_API_KEY", "")
 BASE_URL = "https://api.compsniper.com/v1"
@@ -33,24 +32,14 @@ async def get_ebay_sold(query: str) -> dict:
             listings = data.get("listings", data.get("results", []))
             summary = data.get("summary", {})
 
-            # Filter to last 14 days (wider window)
-            cutoff = datetime.now(timezone.utc) - timedelta(days=14)
-            recent = []
-            for item in listings:
-                ended = item.get("endedAt", item.get("ended_at", ""))
-                if ended:
-                    try:
-                        ended_dt = datetime.fromisoformat(ended.replace("Z", "+00:00"))
-                        if ended_dt < cutoff:
-                            continue
-                    except (ValueError, TypeError):
-                        pass
-
+            # Show all returned listings (CompSniper already returns recent ones)
+            results = []
+            for item in listings[:15]:
                 price = item.get("soldPrice", item.get("price", ""))
                 shipping = item.get("shippingPrice", "")
                 total = item.get("totalPrice", "")
+                ended = item.get("endedAt", item.get("ended_at", ""))
 
-                # Calculate total if missing
                 if not total and price:
                     try:
                         p = float(str(price).replace(",", ""))
@@ -59,7 +48,7 @@ async def get_ebay_sold(query: str) -> dict:
                     except (ValueError, TypeError):
                         total = price
 
-                recent.append({
+                results.append({
                     "title": item.get("title", ""),
                     "price": price,
                     "currency": item.get("soldCurrency", "USD"),
@@ -73,11 +62,11 @@ async def get_ebay_sold(query: str) -> dict:
 
             return {
                 "error": None,
-                "results": recent[:15],
+                "results": results,
                 "summary": {
                     "median": summary.get("median", ""),
                     "average": summary.get("average", ""),
-                    "count": summary.get("count", len(recent)),
+                    "count": summary.get("count", len(results)),
                     "p25": summary.get("p25", ""),
                     "p75": summary.get("p75", ""),
                 },

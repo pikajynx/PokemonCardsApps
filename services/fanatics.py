@@ -1,4 +1,4 @@
-"""Fanatics Collect via Apify Actor (Algolia API-based, fast)"""
+"""Fanatics Collect via Apify Actor"""
 import os
 import httpx
 
@@ -7,63 +7,56 @@ ACTOR_ID = "crawloop/fanatics-collect-scraper"
 
 
 async def get_fanatics_listings(query: str) -> dict:
-    """Get Fanatics Collect listings: sold, auctions, buy now."""
+    """Get Fanatics Collect listings."""
     results = {"sold": [], "auctions": [], "buy_now": []}
 
     if not API_KEY:
         return {"error": "Apify API key not configured", **results}
 
-    async with httpx.AsyncClient(timeout=90) as client:
-        try:
-            # Use synchronous run endpoint
+    try:
+        async with httpx.AsyncClient(timeout=45) as client:
             resp = await client.post(
                 f"https://api.apify.com/v2/actors/{ACTOR_ID}/run-sync-get-dataset-items",
-                params={"token": API_KEY, "timeout": 60},
+                params={"token": API_KEY, "timeout": 30},
                 json={
                     "searchQuery": query,
-                    "maxItems": 30,
-                    "marketplace": "all",
+                    "maxItems": 15,
                 },
                 headers={"Content-Type": "application/json"},
             )
-            resp.raise_for_status()
+            if resp.status_code != 200:
+                return {"error": f"Fanatics: HTTP {resp.status_code}", **results}
+
             items = resp.json()
-
             if not isinstance(items, list):
-                return {"error": "Unexpected Fanatics response", **results}
+                return {"error": None, **results}
 
-            for item in items[:25]:
+            for item in items[:15]:
                 entry = {
-                    "title": item.get("title", item.get("subtitle", "")),
+                    "title": str(item.get("title", ""))[:120],
                     "price": _fmt_price(item),
-                    "grade": item.get("grade", ""),
-                    "grader": item.get("gradingCompany", ""),
+                    "grade": str(item.get("grade", "")),
+                    "grader": str(item.get("gradingCompany", "")),
                     "bids": item.get("bidCount", ""),
                     "url": item.get("listingUrl", ""),
-                    "image": item.get("imageUrl", ""),
-                    "close_date": item.get("closeDate", item.get("soldDate", "")),
+                    "close_date": item.get("closeDate", ""),
                 }
-
-                status = item.get("status", "").lower()
                 is_sold = item.get("isSold", False)
-
+                status = str(item.get("status", "")).lower()
                 if is_sold or "sold" in status:
                     results["sold"].append(entry)
-                elif "buy" in status or "fixed" in status or "marketplace" in str(item.get("marketplace", "")).lower():
-                    results["buy_now"].append(entry)
                 else:
                     results["auctions"].append(entry)
 
-        except httpx.HTTPStatusError as e:
-            return {"error": f"Fanatics API error: {e.response.status_code}", **results}
-        except Exception as e:
-            return {"error": f"Fanatics: {str(e)[:100]}", **results}
+    except httpx.TimeoutException:
+        return {"error": "Fanatics timed out (try again)", **results}
+    except Exception as e:
+        return {"error": f"Fanatics: {str(e)[:80]}", **results}
 
     return {"error": None, **results}
 
 
 def _fmt_price(item: dict) -> str:
-    """Get the best available price from a Fanatics item."""
     for key in ["realizedPrice", "currentBid", "startingBid", "estimatedValue"]:
         val = item.get(key)
         if val and str(val).strip():
