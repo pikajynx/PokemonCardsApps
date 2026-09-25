@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ query }} — Price Checker</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="/" class="back">← New Search</a>
+            <h1>{{ query }}</h1>
+        </header>
+
+        <!-- TCGPlayer Section -->
+        <section class="source-section">
+            <h2 class="source-header tcg">📊 TCGPlayer Market Price</h2>
+            {% if tcg.error %}
+                <div class="error">{{ tcg.error }}</div>
+            {% elif tcg.results %}
+                {% for card in tcg.results %}
+                <div class="card-result">
+                    <div class="card-info">
+                        <strong>{{ card.name }}</strong>
+                        {% if card.set %}<span class="set">{{ card.set }}{% if card.number %} #{{ card.number }}{% endif %}</span>{% endif %}
+                    </div>
+                    <div class="price-grid">
+                        {% if card.market_price %}<div class="price-item market"><span class="label">Market</span><span class="value">${{ card.market_price }}</span></div>{% endif %}
+                        {% if card.low_price %}<div class="price-item low"><span class="label">Low</span><span class="value">${{ card.low_price }}</span></div>{% endif %}
+                        {% if card.mid_price %}<div class="price-item mid"><span class="label">Mid</span><span class="value">${{ card.mid_price }}</span></div>{% endif %}
+                        {% if card.high_price %}<div class="price-item high"><span class="label">High</span><span class="value">${{ card.high_price }}</span></div>{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty">No TCGPlayer results found.</div>
+            {% endif %}
+        </section>
+
+        <!-- eBay Sold Section -->
+        <section class="source-section">
+            <h2 class="source-header ebay">🛒 eBay Sold (Last 3 Days)</h2>
+            {% if ebay.summary and ebay.summary.median %}
+            <div class="summary-bar">
+                <span>Median: <strong>${{ ebay.summary.median }}</strong></span>
+                <span>Avg: <strong>${{ ebay.summary.average }}</strong></span>
+                <span>{{ ebay.summary.count }} sales</span>
+            </div>
+            {% endif %}
+            {% if ebay.error %}
+                <div class="error">{{ ebay.error }}</div>
+            {% elif ebay.results %}
+                {% for item in ebay.results %}
+                <div class="listing">
+                    <div class="listing-info">
+                        <span class="title">{{ item.title[:80] }}{% if item.title|length > 80 %}...{% endif %}</span>
+                        {% if item.condition %}<span class="condition">{{ item.condition }}</span>{% endif %}
+                    </div>
+                    <div class="listing-price">
+                        {% if item.total %}<strong>${{ item.total }}</strong>
+                        {% elif item.price %}<strong>${{ item.price }}</strong>{% endif %}
+                        {% if item.shipping and item.shipping != "0" and item.shipping != "0.00" %}<span class="shipping">+${{ item.shipping }} ship</span>{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty">No eBay sales in the last 3 days.</div>
+            {% endif %}
+        </section>
+
+        <!-- Whatnot Section -->
+        <section class="source-section">
+            <h2 class="source-header whatnot">📺 Whatnot Listings</h2>
+            {% if whatnot.error %}
+                <div class="error">{{ whatnot.error }}</div>
+            {% elif whatnot.results %}
+                {% for item in whatnot.results %}
+                <div class="listing">
+                    <div class="listing-info">
+                        <span class="title">{{ item.title[:80] }}{% if item.title|length > 80 %}...{% endif %}</span>
+                        {% if item.condition %}<span class="condition">{{ item.condition }}</span>{% endif %}
+                        {% if item.live %}<span class="live-badge">LIVE</span>{% endif %}
+                    </div>
+                    <div class="listing-price">
+                        {% if item.price %}<strong>${{ item.price }}</strong>{% endif %}
+                        {% if item.seller %}<span class="seller">{{ item.seller }}{% if item.rating %} ⭐{{ item.rating }}{% endif %}</span>{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty">No Whatnot listings found.</div>
+            {% endif %}
+        </section>
+    </div>
+</body>
+</html>
