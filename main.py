@@ -31,9 +31,23 @@ async def search(
     request: Request,
     q: str = Query(default="", min_length=1),
     grade: str = Query(default=""),
+    sold_after: str = Query(default=""),
 ):
     query = q.strip()
     grade = grade.strip()
+    sold_after = sold_after.strip()
+
+    # Convert relative date filters to ISO dates
+    from datetime import datetime, timedelta, timezone
+    if sold_after in ("7d", "30d", "90d"):
+        days = int(sold_after.replace("d", ""))
+        sold_after = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+    elif sold_after and sold_after not in ("",):
+        # Validate it's a reasonable date string
+        try:
+            datetime.strptime(sold_after, "%Y-%m-%d")
+        except ValueError:
+            sold_after = ""
 
     # Build graded search query
     ebay_query = f"{query} {grade}".strip() if grade else query
@@ -43,7 +57,7 @@ async def search(
 
     # Run API calls concurrently with timeouts for social media
     tcg_task = asyncio.create_task(get_tcgplayer_prices(query))
-    ebay_task = asyncio.create_task(get_ebay_sold(ebay_query))
+    ebay_task = asyncio.create_task(get_ebay_sold(ebay_query, sold_after=sold_after))
     whatnot_task = asyncio.create_task(get_whatnot_listings(whatnot_query))
     fanatics_task = asyncio.create_task(get_fanatics_listings(fanatics_query))
     
@@ -85,6 +99,7 @@ async def search(
         "request": request,
         "query": query,
         "grade": grade,
+        "sold_after": sold_after,
         "tcg": tcg,
         "ebay": ebay,
         "whatnot": whatnot,

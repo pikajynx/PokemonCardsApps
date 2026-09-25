@@ -46,6 +46,7 @@
                 <span>Median: <strong>${{ ebay.summary.median }}</strong></span>
                 <span>Avg: <strong>${{ ebay.summary.average }}</strong></span>
                 <span>{{ ebay.summary.count }} sales</span>
+                {% if sold_after %}<span class="date-range-badge">Since {{ sold_after }}</span>{% endif %}
             </div>
             {% endif %}
             {% if ebay.error %}
@@ -56,6 +57,16 @@
                     <div class="listing-info">
                         <span class="title">{{ item.title[:80] }}{% if item.title|length > 80 %}...{% endif %}</span>
                         {% if item.condition %}<span class="condition">{{ item.condition }}</span>{% endif %}
+                        {% if item.best_offer %}<span class="condition best-offer">Best Offer</span>{% endif %}
+                        <div class="date-info">
+                            {% if item.sold_relative %}
+                            <span class="freshness-dot {{ item.freshness }}"></span>
+                            <span class="sold-date" title="{{ item.sold_date_formatted }}">Sold {{ item.sold_relative }}</span>
+                            {% endif %}
+                            {% if item.listing_duration_text %}
+                            <span class="listing-duration" title="Listed for {{ item.listing_duration_days }} days">⏱ {{ item.listing_duration_text }}</span>
+                            {% endif %}
+                        </div>
                     </div>
                     <div class="listing-price">
                         {% if item.total %}<strong>${{ item.total }}</strong>
@@ -65,7 +76,7 @@
                 </div>
                 {% endfor %}
             {% else %}
-                <div class="empty">No eBay sales in the last 3 days.</div>
+                <div class="empty">No eBay sold results found.</div>
             {% endif %}
         </section>
 
@@ -106,6 +117,7 @@
                     <div class="listing">
                         <div class="listing-info">
                             <span class="title">{{ item.title[:80] }}{% if item.title|length > 80 %}...{% endif %}</span>
+                            {% if item.close_date %}<span class="date-info"><span class="sold-date">Closed {{ item.close_date }}</span></span>{% endif %}
                         </div>
                         <div class="listing-price">
                             {% if item.price %}<strong>{{ item.price }}</strong>{% endif %}
@@ -122,6 +134,7 @@
                     <div class="listing">
                         <div class="listing-info">
                             <span class="title">{{ item.title[:80] }}{% if item.title|length > 80 %}...{% endif %}</span>
+                            {% if item.close_date %}<span class="date-info"><span class="sold-date">Ends {{ item.close_date }}</span></span>{% endif %}
                         </div>
                         <div class="listing-price">
                             {% if item.price %}<strong>{{ item.price }}</strong>{% endif %}
