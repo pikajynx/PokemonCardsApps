@@ -30,11 +30,20 @@ async def get_ebay_sold(query: str) -> dict:
             resp.raise_for_status()
             data = resp.json()
 
-            # Debug: log the response keys
-            print(f"CompSniper response keys: {list(data.keys())}")
-            print(f"CompSniper response (first 500 chars): {str(data)[:500]}")
+            # Debug: try every possible key name
+            listings = None
+            for key in ["listings", "results", "items", "sold", "soldItems", "sold_items", "data", "rows"]:
+                if key in data and isinstance(data[key], list) and len(data[key]) > 0:
+                    listings = data[key]
+                    print(f"Found listings under key: {key}, count: {len(listings)}")
+                    break
+            
+            if listings is None:
+                # Fallback: print all keys and their types
+                for k, v in data.items():
+                    print(f"  key={k}, type={type(v).__name__}, len={len(v) if isinstance(v, list) else 'N/A'}")
+                listings = []
 
-            listings = data.get("listings", data.get("results", data.get("items", data.get("sold", []))))
             summary = data.get("summary", {})
 
             # Show all returned listings (CompSniper already returns recent ones)
