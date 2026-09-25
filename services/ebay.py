@@ -15,7 +15,7 @@ async def get_ebay_sold(query: str) -> dict:
     headers = {"Authorization": f"Bearer {API_KEY}"}
     params = {
         "keyword": f"pokemon {query}",
-        "count": 20,
+        "count": 30,
         "ebaySite": "ebay.com",
         "itemCondition": "any",
     }
@@ -33,27 +33,40 @@ async def get_ebay_sold(query: str) -> dict:
             listings = data.get("listings", data.get("results", []))
             summary = data.get("summary", {})
 
-            # Filter to last 3 days
-            three_days_ago = datetime.now(timezone.utc) - timedelta(days=3)
+            # Filter to last 14 days (wider window)
+            cutoff = datetime.now(timezone.utc) - timedelta(days=14)
             recent = []
             for item in listings:
                 ended = item.get("endedAt", item.get("ended_at", ""))
                 if ended:
                     try:
                         ended_dt = datetime.fromisoformat(ended.replace("Z", "+00:00"))
-                        if ended_dt < three_days_ago:
+                        if ended_dt < cutoff:
                             continue
                     except (ValueError, TypeError):
                         pass
 
+                price = item.get("soldPrice", item.get("price", ""))
+                shipping = item.get("shippingPrice", "")
+                total = item.get("totalPrice", "")
+
+                # Calculate total if missing
+                if not total and price:
+                    try:
+                        p = float(str(price).replace(",", ""))
+                        s = float(str(shipping).replace(",", "")) if shipping else 0
+                        total = f"{p + s:.2f}"
+                    except (ValueError, TypeError):
+                        total = price
+
                 recent.append({
                     "title": item.get("title", ""),
-                    "price": item.get("soldPrice", item.get("price", "")),
+                    "price": price,
                     "currency": item.get("soldCurrency", "USD"),
-                    "shipping": item.get("shippingPrice", ""),
-                    "total": item.get("totalPrice", ""),
+                    "shipping": shipping,
+                    "total": total,
                     "condition": item.get("condition", ""),
-                    "ended": ended,
+                    "ended": ended[:10] if ended else "",
                     "url": item.get("url", item.get("itemUrl", "")),
                     "image": item.get("image", item.get("imageUrl", "")),
                 })

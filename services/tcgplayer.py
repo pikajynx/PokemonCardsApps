@@ -11,14 +11,13 @@ async def get_tcgplayer_prices(query: str) -> dict:
     if not API_KEY:
         return {"error": "TCGPlayer API key not configured", "results": []}
 
-    headers = {"Authorization": f"Bearer {API_KEY}"}
+    headers = {"X-API-Key": API_KEY}
     params = {"q": query, "game": "pokemon", "limit": 5}
 
     async with httpx.AsyncClient(timeout=15) as client:
         try:
-            # Search for the card
             resp = await client.get(
-                f"{BASE_URL}/cards/search",
+                f"{BASE_URL}/search",
                 headers=headers,
                 params=params,
             )
@@ -26,33 +25,19 @@ async def get_tcgplayer_prices(query: str) -> dict:
             data = resp.json()
 
             results = []
-            cards = data if isinstance(data, list) else data.get("data", data.get("results", []))
+            cards = data.get("data", []) if isinstance(data, dict) else data
 
             for card in cards[:5]:
-                name = card.get("name", "Unknown")
-                set_name = card.get("set", {}).get("name", "") if isinstance(card.get("set"), dict) else str(card.get("set", ""))
-                number = card.get("number", "")
-                image = card.get("image", card.get("imageUrl", ""))
-
-                # Get pricing
-                prices = card.get("prices", card.get("tcgplayer", {}))
-                if isinstance(prices, dict):
-                    market = prices.get("market", prices.get("marketPrice", ""))
-                    low = prices.get("low", prices.get("lowPrice", ""))
-                    mid = prices.get("mid", prices.get("midPrice", ""))
-                    high = prices.get("high", prices.get("highPrice", ""))
-                else:
-                    market = low = mid = high = ""
-
                 results.append({
-                    "name": name,
-                    "set": set_name,
-                    "number": number,
-                    "image": image,
-                    "market_price": market,
-                    "low_price": low,
-                    "mid_price": mid,
-                    "high_price": high,
+                    "name": card.get("name", "Unknown"),
+                    "set": card.get("set_name", ""),
+                    "number": card.get("number", ""),
+                    "rarity": card.get("rarity", ""),
+                    "image": card.get("image_url", ""),
+                    "market_price": card.get("market_price", ""),
+                    "low_price": card.get("low_price", ""),
+                    "mid_price": card.get("median_price", ""),
+                    "high_price": card.get("lowest_with_shipping", ""),
                 })
 
             return {"error": None, "results": results}

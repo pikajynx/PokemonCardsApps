@@ -3,59 +3,31 @@ import os
 import httpx
 
 API_KEY = os.getenv("APIFY_API_KEY", "")
-ACTOR_ID = "crawloop/whatnot-listings-scraper"
+ACTOR_ID = "crawloop~whatnot-listings-scraper"
 
 
 async def get_whatnot_listings(query: str) -> dict:
-    """Get current Whatnot listings for Pokémon cards."""
+    """Get current Whatnot listings for Pokemon cards."""
     if not API_KEY:
         return {"error": "Apify API key not configured", "results": []}
 
-    async with httpx.AsyncClient(timeout=60) as client:
+    async with httpx.AsyncClient(timeout=90) as client:
         try:
-            # Start the Actor run
-            run_resp = await client.post(
-                f"https://api.apify.com/v2/acts/{ACTOR_ID}/runs",
-                params={"token": API_KEY},
+            resp = await client.post(
+                f"https://api.apify.com/v2/actors/{ACTOR_ID}/run-sync-get-dataset-items",
+                params={"token": API_KEY, "timeout": 60},
                 json={
-                    "searchKeywords": f"pokemon {query}",
+                    "searchKeywords": [f"pokemon {query}"],
                     "buyFormat": "buy_now",
                     "maxItems": 15,
                 },
+                headers={"Content-Type": "application/json"},
             )
-            run_resp.raise_for_status()
-            run_data = run_resp.json()
-            run_id = run_data.get("data", {}).get("id")
+            resp.raise_for_status()
+            items = resp.json()
 
-            if not run_id:
-                return {"error": "Failed to start Whatnot scraper", "results": []}
-
-            # Poll for completion (max 45 seconds)
-            import asyncio
-            for _ in range(15):
-                await asyncio.sleep(3)
-                status_resp = await client.get(
-                    f"https://api.apify.com/v2/actor-runs/{run_id}",
-                    params={"token": API_KEY},
-                )
-                status_data = status_resp.json()
-                status = status_data.get("data", {}).get("status")
-                if status == "SUCCEEDED":
-                    break
-                if status in ("FAILED", "ABORTED", "TIMED-OUT"):
-                    return {"error": f"Whatnot scraper {status}", "results": []}
-
-            # Get the results
-            dataset_id = status_data.get("data", {}).get("defaultDatasetId")
-            if not dataset_id:
-                return {"error": "No Whatnot results found", "results": []}
-
-            items_resp = await client.get(
-                f"https://api.apify.com/v2/datasets/{dataset_id}/items",
-                params={"token": API_KEY, "format": "json"},
-            )
-            items_resp.raise_for_status()
-            items = items_resp.json()
+            if not isinstance(items, list):
+                return {"error": "Unexpected Whatnot response", "results": []}
 
             results = []
             for item in items[:15]:
@@ -64,7 +36,7 @@ async def get_whatnot_listings(query: str) -> dict:
                     "price": item.get("price", ""),
                     "currency": item.get("currency", "USD"),
                     "condition": item.get("condition", ""),
-                    "seller": item.get("seller", ""),
+                    "seller": item.get("seller", item.get("sellerName", "")),
                     "rating": item.get("sellerRating", item.get("seller_rating", "")),
                     "live": item.get("live", False),
                     "url": item.get("url", item.get("itemUrl", "")),
