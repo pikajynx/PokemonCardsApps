@@ -10,7 +10,7 @@
     <div class="container">
         <header>
             <a href="/" class="back">← New Search</a>
-            <h1>{{ query }}</h1>
+            <h1>{{ query }}{% if grade %} <span class="grade-badge">{{ grade }}</span>{% endif %}</h1>
         </header>
 
         <!-- TCGPlayer Section -->

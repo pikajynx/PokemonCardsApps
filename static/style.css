@@ -40,6 +40,18 @@ header h1 {
     margin-bottom: 8px;
 }
 
+.grade-badge {
+    display: inline-block;
+    background: #ffcb05;
+    color: #0f0f23;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    vertical-align: middle;
+    margin-left: 6px;
+}
+
 /* Search Form */
 .search-form {
     display: flex;
@@ -87,6 +99,45 @@ header h1 {
 }
 
 .hint strong { color: #999; }
+
+/* Grade Filter */
+.grade-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    margin: 12px 0;
+    padding: 10px;
+    background: #1a1a2e;
+    border-radius: 10px;
+}
+
+.grade-label {
+    font-size: 0.85rem;
+    color: #888;
+    margin-right: 4px;
+}
+
+.grade-filter label {
+    font-size: 0.8rem;
+    color: #ccc;
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: #2a2a3e;
+    transition: all 0.2s;
+}
+
+.grade-filter label:has(input:checked) {
+    background: #ffcb05;
+    color: #0f0f23;
+    font-weight: 600;
+}
+
+.grade-filter input[type="radio"] {
+    display: none;
+}
 
 /* Source Sections */
 .source-section {

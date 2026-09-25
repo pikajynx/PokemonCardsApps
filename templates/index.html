@@ -13,7 +13,7 @@
             <p class="subtitle">TCGPlayer · eBay Sold · Whatnot</p>
         </header>
 
-        <form action="/search" method="get" class="search-form">
+        <form action="/search" method="get" class="search-form" id="searchform">
             <input
                 type="text"
                 name="q"
@@ -25,8 +25,18 @@
             <button type="submit">Search</button>
         </form>
 
+        <div class="grade-filter">
+            <span class="grade-label">Grade:</span>
+            <label><input type="radio" name="grade" value="" form="searchform" checked> All</label>
+            <label><input type="radio" name="grade" value="PSA 10" form="searchform"> PSA 10</label>
+            <label><input type="radio" name="grade" value="PSA 9" form="searchform"> PSA 9</label>
+            <label><input type="radio" name="grade" value="BGS 10" form="searchform"> BGS 10</label>
+            <label><input type="radio" name="grade" value="CGC 10" form="searchform"> CGC 10</label>
+        </div>
+
         <div class="hint">
             <p>Try: <strong>Charizard ex</strong>, <strong>Pikachu VMAX</strong>, <strong>Mewtwo ex 225</strong></p>
+            <p>For graded cards: search the card name, then select a grade above</p>
         </div>
     </div>
 </body>
