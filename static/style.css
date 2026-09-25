@@ -358,12 +358,10 @@ header h1 {
 
 .sold-date {
     color: #888;
-    cursor: help;
 }
 
 .listing-duration {
     color: #666;
-    cursor: help;
 }
 
 /* Freshness Dots */
