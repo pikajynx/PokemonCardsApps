@@ -157,6 +157,23 @@ header h1 {
 .source-header.tcg { background: #1a2744; color: #5b9bd5; }
 .source-header.ebay { background: #2a1a1a; color: #e53238; }
 .source-header.whatnot { background: #1a2a1a; color: #2ecc71; }
+.source-header.fanatics { background: #2a1a2a; color: #a855f7; }
+
+.fanatics-subsection {
+    border-bottom: 1px solid #2a2a3e;
+}
+
+.fanatics-subsection:last-child {
+    border-bottom: none;
+}
+
+.sub-header {
+    font-size: 0.8rem;
+    color: #a855f7;
+    padding: 8px 16px 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
 
 /* TCGPlayer Card Results */
 .card-result {

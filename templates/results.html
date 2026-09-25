@@ -92,6 +92,66 @@
                 <div class="empty">No Whatnot listings found.</div>
             {% endif %}
         </section>
+
+        <!-- Fanatics Section -->
+        <section class="source-section">
+            <h2 class="source-header fanatics">🏆 Fanatics Collect</h2>
+            {% if fanatics.error %}
+                <div class="error">{{ fanatics.error }}</div>
+            {% else %}
+                {% if fanatics.sold %}
+                <div class="fanatics-subsection">
+                    <h3 class="sub-header">Sold</h3>
+                    {% for item in fanatics.sold %}
+                    <div class="listing">
+                        <div class="listing-info">
+                            <span class="title">{{ item.title[:80] }}{% if item.title|length > 80 %}...{% endif %}</span>
+                        </div>
+                        <div class="listing-price">
+                            {% if item.price %}<strong>{{ item.price }}</strong>{% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if fanatics.auctions %}
+                <div class="fanatics-subsection">
+                    <h3 class="sub-header">Auctions</h3>
+                    {% for item in fanatics.auctions %}
+                    <div class="listing">
+                        <div class="listing-info">
+                            <span class="title">{{ item.title[:80] }}{% if item.title|length > 80 %}...{% endif %}</span>
+                        </div>
+                        <div class="listing-price">
+                            {% if item.price %}<strong>{{ item.price }}</strong>{% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if fanatics.buy_now %}
+                <div class="fanatics-subsection">
+                    <h3 class="sub-header">Buy Now</h3>
+                    {% for item in fanatics.buy_now %}
+                    <div class="listing">
+                        <div class="listing-info">
+                            <span class="title">{{ item.title[:80] }}{% if item.title|length > 80 %}...{% endif %}</span>
+                        </div>
+                        <div class="listing-price">
+                            {% if item.price %}<strong>{{ item.price }}</strong>{% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if not fanatics.sold and not fanatics.auctions and not fanatics.buy_now %}
+                    <div class="empty">No Fanatics listings found. This may take a moment to load...</div>
+                {% endif %}
+            {% endif %}
+        </section>
     </div>
 </body>
 </html>
