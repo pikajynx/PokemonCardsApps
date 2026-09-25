@@ -41,13 +41,27 @@ async def search(
     fanatics_query = f"{query} {grade}".strip() if grade else query
     social_query = f"{query} {grade}".strip() if grade else query
 
-    # Run API calls concurrently
+    # Run API calls concurrently with timeouts for social media
     tcg_task = asyncio.create_task(get_tcgplayer_prices(query))
     ebay_task = asyncio.create_task(get_ebay_sold(ebay_query))
     whatnot_task = asyncio.create_task(get_whatnot_listings(whatnot_query))
     fanatics_task = asyncio.create_task(get_fanatics_listings(fanatics_query))
-    tiktok_task = asyncio.create_task(get_tiktok_listings(social_query))
-    instagram_task = asyncio.create_task(get_instagram_listings(social_query))
+    
+    # Social media with hard timeouts
+    async def tiktok_with_timeout():
+        try:
+            return await asyncio.wait_for(get_tiktok_listings(social_query), timeout=25)
+        except (asyncio.TimeoutError, Exception):
+            return {"results": []}
+    
+    async def instagram_with_timeout():
+        try:
+            return await asyncio.wait_for(get_instagram_listings(social_query), timeout=25)
+        except (asyncio.TimeoutError, Exception):
+            return {"results": []}
+    
+    tiktok_task = asyncio.create_task(tiktok_with_timeout())
+    instagram_task = asyncio.create_task(instagram_with_timeout())
 
     tcg, ebay, whatnot, fanatics, tiktok, instagram = await asyncio.gather(
         tcg_task, ebay_task, whatnot_task, fanatics_task, tiktok_task, instagram_task,
