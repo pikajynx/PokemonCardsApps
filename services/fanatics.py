@@ -1,68 +1,71 @@
-"""Fanatics Collect scraper using httpx + BeautifulSoup"""
+"""Fanatics Collect via Apify Actor (Algolia API-based, fast)"""
+import os
 import httpx
-from bs4 import BeautifulSoup
 
-BASE_URL = "https://www.fanaticscollect.com"
+API_KEY = os.getenv("APIFY_API_KEY", "")
+ACTOR_ID = "crawloop~fanatics-collect-scraper"
 
 
 async def get_fanatics_listings(query: str) -> dict:
-    """Scrape Fanatics Collect for sold, auctions, and buy now listings."""
+    """Get Fanatics Collect listings: sold, auctions, buy now."""
     results = {"sold": [], "auctions": [], "buy_now": []}
 
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml",
-    }
+    if not API_KEY:
+        return {"error": "Apify API key not configured", **results}
 
-    async with httpx.AsyncClient(timeout=20, follow_redirects=True, headers=headers) as client:
+    async with httpx.AsyncClient(timeout=90) as client:
         try:
-            # Search Fanatics Collect
-            search_url = f"{BASE_URL}/search?q={query.replace(' ', '+')}"
-            resp = await client.get(search_url)
+            # Use synchronous run endpoint
+            resp = await client.post(
+                f"https://api.apify.com/v2/actors/{ACTOR_ID}/run-sync-get-dataset-items",
+                params={"token": API_KEY, "timeout": 60},
+                json={
+                    "searchQuery": query,
+                    "maxItems": 30,
+                    "marketplace": "all",
+                },
+                headers={"Content-Type": "application/json"},
+            )
             resp.raise_for_status()
+            items = resp.json()
 
-            soup = BeautifulSoup(resp.text, "html.parser")
+            if not isinstance(items, list):
+                return {"error": "Unexpected Fanatics response", **results}
 
-            # Try to extract listing cards
-            # Fanatics uses React so HTML may be minimal - try common selectors
-            cards = soup.select("[class*=card], [class*=item], [class*=listing], [class*=product], [class*=result]")
+            for item in items[:25]:
+                entry = {
+                    "title": item.get("title", item.get("subtitle", "")),
+                    "price": _fmt_price(item),
+                    "grade": item.get("grade", ""),
+                    "grader": item.get("gradingCompany", ""),
+                    "bids": item.get("bidCount", ""),
+                    "url": item.get("listingUrl", ""),
+                    "image": item.get("imageUrl", ""),
+                    "close_date": item.get("closeDate", item.get("soldDate", "")),
+                }
 
-            for card in cards[:20]:
-                title_el = card.select_one("[class*=title], [class*=name], h3, h4, p, a")
-                price_el = card.select_one("[class*=price], [class*=amount], [class*=bid]")
-                link_el = card.select_one("a[href]")
+                status = item.get("status", "").lower()
+                is_sold = item.get("isSold", False)
 
-                title = title_el.get_text(strip=True) if title_el else ""
-                price = price_el.get_text(strip=True) if price_el else ""
-                link = link_el.get("href", "") if link_el else ""
-
-                if title and len(title) > 3:
-                    entry = {
-                        "title": title[:120],
-                        "price": _clean_price(price),
-                        "url": f"{BASE_URL}{link}" if link.startswith("/") else link,
-                    }
+                if is_sold or "sold" in status:
                     results["sold"].append(entry)
-
-            # If no cards found via HTML, try to get data from any structured content
-            if not results["sold"]:
-                # Try getting any text content that looks like listings
-                all_text = soup.get_text(separator="\n", strip=True)
-                if "no results" in all_text.lower() or len(all_text) < 100:
-                    results["sold"] = []
+                elif "buy" in status or "fixed" in status or "marketplace" in str(item.get("marketplace", "")).lower():
+                    results["buy_now"].append(entry)
+                else:
+                    results["auctions"].append(entry)
 
         except httpx.HTTPStatusError as e:
-            return {"error": f"Fanatics: HTTP {e.response.status_code}", **results}
+            return {"error": f"Fanatics API error: {e.response.status_code}", **results}
         except Exception as e:
             return {"error": f"Fanatics: {str(e)[:100]}", **results}
 
     return {"error": None, **results}
 
 
-def _clean_price(price_str: str) -> str:
-    """Extract numeric price from a string."""
-    import re
-    if not price_str:
-        return ""
-    match = re.search(r"\$[\d,]+\.?\d*", price_str)
-    return match.group(0) if match else price_str.strip()
+def _fmt_price(item: dict) -> str:
+    """Get the best available price from a Fanatics item."""
+    for key in ["realizedPrice", "currentBid", "startingBid", "estimatedValue"]:
+        val = item.get(key)
+        if val and str(val).strip():
+            return f"${val}"
+    return ""
