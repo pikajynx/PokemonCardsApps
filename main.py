@@ -5,7 +5,7 @@ Pulls prices from TCGPlayer, eBay (CompSniper), and Whatnot (Apify)
 import os
 import asyncio
 from fastapi import FastAPI, Request, Query
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -66,3 +66,37 @@ async def search(
         "whatnot": whatnot,
         "fanatics": fanatics,
     })
+
+
+@app.get("/debug/ebay")
+async def debug_ebay(q: str = Query(default="pikachu")):
+    """Debug endpoint to see raw CompSniper response."""
+    import httpx
+    API_KEY = os.getenv("COMPSNIPER_API_KEY", "")
+    if not API_KEY:
+        return JSONResponse({"error": "No API key set"})
+    
+    headers = {"Authorization": f"Bearer {API_KEY}"}
+    params = {"keyword": f"pokemon {q}", "count": 5, "ebaySite": "ebay.com", "sold": "true"}
+    
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get("https://api.compsniper.com/v1/scrape", headers=headers, params=params)
+        data = resp.json()
+        
+        # Return the full response structure
+        result = {
+            "status": resp.status_code,
+            "top_level_keys": list(data.keys()),
+            "key_types": {k: type(v).__name__ for k, v in data.items()},
+        }
+        
+        # Check each key for arrays
+        for k, v in data.items():
+            if isinstance(v, list):
+                result[f"{k}_count"] = len(v)
+                if len(v) > 0:
+                    result[f"{k}_first_item_keys"] = list(v[0].keys()) if isinstance(v[0], dict) else str(type(v[0]))
+            elif isinstance(v, dict):
+                result[f"{k}_keys"] = list(v.keys())
+        
+        return JSONResponse(result)
