@@ -83,19 +83,12 @@ async def debug_ebay(q: str = Query(default="pikachu")):
         resp = await client.get("https://api.compsniper.com/v1/scrape", headers=headers, params=params)
         data = resp.json()
         
-        # Return the full response structure
-        result = {
-            "status": resp.status_code,
-            "top_level_keys": list(data.keys()),
-            "key_types": {k: type(v).__name__ for k, v in data.items()},
-        }
-        
-        # Check each key for arrays
+        result = {"status": resp.status_code, "keys": list(data.keys())}
         for k, v in data.items():
             if isinstance(v, list):
                 result[f"{k}_count"] = len(v)
-                if len(v) > 0:
-                    result[f"{k}_first_item_keys"] = list(v[0].keys()) if isinstance(v[0], dict) else str(type(v[0]))
+                if v and isinstance(v[0], dict):
+                    result[f"{k}_fields"] = list(v[0].keys())
             elif isinstance(v, dict):
                 result[f"{k}_keys"] = list(v.keys())
         

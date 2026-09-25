@@ -1,29 +1,37 @@
-"""Fanatics Collect via Apify Actor - jungle_synthesizer"""
+"""Fanatics Collect via Apify"""
 import os
 import httpx
 import asyncio
 
 API_KEY = os.getenv("APIFY_API_KEY", "")
-ACTOR_ID = "jungle_synthesizer~fanaticscollect-weekly-auction-scraper"
+ACTORS = [
+    "jungle_synthesizer~fanaticscollect-weekly-auction-scraper",
+    "lulzasaur~fanaticscollect-scraper",
+]
 
 
-async def _fetch_mode(client, query: str, mode: str, timeout: int = 25):
-    """Fetch one mode (weekly_auction, sold, buy_now) from Fanatics."""
+async def _try_actor(client, actor_id: str, query: str, mode: str) -> list:
     try:
         resp = await client.post(
-            f"https://api.apify.com/v2/actors/{ACTOR_ID}/run-sync-get-dataset-items",
-            params={"token": API_KEY, "timeout": timeout},
+            f"https://api.apify.com/v2/actors/{actor_id}/run-sync-get-dataset-items",
+            params={"token": API_KEY, "timeout": 20},
             json={
                 "keyword": query,
+                "searchQuery": query,
                 "maxItems": 10,
                 "mode": mode,
+                "sp_intended_usage": "Card price research",
+                "sp_improvement_suggestions": "",
+                "sp_contact": "",
+                "categories": [],
+                "graders": [],
             },
             headers={"Content-Type": "application/json"},
         )
         if resp.status_code != 200:
             return []
         items = resp.json()
-        if not isinstance(items, list):
+        if not isinstance(items, list) or not items:
             return []
         results = []
         for item in items[:10]:
@@ -51,26 +59,18 @@ async def get_fanatics_listings(query: str) -> dict:
     if not API_KEY:
         return {"error": None, **results}
 
-    async with httpx.AsyncClient(timeout=35) as client:
-        # Fetch sold + auctions in parallel with hard timeout
-        sold_task = asyncio.create_task(_fetch_mode(client, query, "sold"))
-        auction_task = asyncio.create_task(_fetch_mode(client, query, "weekly_auction"))
-        buy_now_task = asyncio.create_task(_fetch_mode(client, query, "buy_now"))
-
-        done, pending = await asyncio.wait(
-            [sold_task, auction_task, buy_now_task],
-            timeout=30,
-            return_when=asyncio.ALL_COMPLETED,
-        )
-
-        for t in pending:
-            t.cancel()
-
-        if sold_task in done:
-            results["sold"] = sold_task.result()
-        if auction_task in done:
-            results["auctions"] = auction_task.result()
-        if buy_now_task in done:
-            results["buy_now"] = buy_now_task.result()
+    async with httpx.AsyncClient(timeout=45) as client:
+        for actor_id in ACTORS:
+            for mode in ["weekly_auction", "sold", "buy_now"]:
+                data = await _try_actor(client, actor_id, query, mode)
+                if data:
+                    if mode == "sold":
+                        results["sold"] = data
+                    elif mode == "buy_now":
+                        results["buy_now"] = data
+                    else:
+                        results["auctions"] = data
+        if any(results.values()):
+            return {"error": None, **results}
 
     return {"error": None, **results}
